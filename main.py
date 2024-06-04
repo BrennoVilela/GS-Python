@@ -1,91 +1,115 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import simpledialog, messagebox
 from drone import Drone
-from sistema_deteccao_plastico import SistemaDeteccaoPlastico
+from sistema_deteccao import SistemaDeteccaoPlastico
 from sistema_usuarios import SistemaUsuarios
 from sistema_doacoes import SistemaDoacoes
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("SOS Oceanos")
-        self.sistema_usuarios = SistemaUsuarios()
-        self.sistema_deteccao = SistemaDeteccaoPlastico()
-        self.sistema_doacoes = SistemaDoacoes()
-        self.drone = Drone("d001", "BJK", 96.2)
-        self.usuario_atual = None
-        self.logged_in = False
+def main():
+    # Instancia do drone
+    drone = Drone("d001", "BJK", 96.2)
 
-        self.show_cadastro_login()
+    # Instancia do sistema de detecção de plástico
+    sistema = SistemaDeteccaoPlastico()
 
-    def show_cadastro_login(self):
-        self.clear_window()
+    # Instancia do sistema de usuários
+    sistema_usuarios = SistemaUsuarios()
 
-        tk.Label(self.root, text="Digite qual opção deseja acessar:").pack(pady=10)
-        tk.Button(self.root, text="Cadastrar", command=self.cadastrar_usuario).pack(pady=5)
-        tk.Button(self.root, text="Login", command=self.login_usuario).pack(pady=5)
-        tk.Button(self.root, text="Sair", command=self.root.quit).pack(pady=5)
+    # Instancia do sistema de doações
+    sistema_doacoes = SistemaDoacoes()
 
-    def cadastrar_usuario(self):
-        nome = simpledialog.askstring("Cadastro", "Digite seu nome:")
-        email = simpledialog.askstring("Cadastro", "Digite seu email:")
-        senha = simpledialog.askstring("Cadastro", "Digite sua senha:")
+    usuario_atual = None
 
-        if self.sistema_usuarios.cadastrar_usuario(nome, email, senha):
-            messagebox.showinfo("Cadastro", "Cadastro feito com sucesso!")
+    # Área de Cadastro e Login
+    logged_in = False
+    while not logged_in:
+        opcao_cadastro = simpledialog.askinteger("Opção", "Digite qual opção deseja acessar:\n1 - Cadastrar\n2 - Login\n3 - Sair")
+
+        if opcao_cadastro == 1:
+            nome = simpledialog.askstring("Cadastro", "Digite seu nome:")
+            email = simpledialog.askstring("Cadastro", "Digite seu email:")
+            senha = simpledialog.askstring("Cadastro", "Digite sua senha:", show='*')
+
+            if nome and email and senha:
+                if sistema_usuarios.cadastrar_usuario(nome, email, senha):
+                    messagebox.showinfo("Cadastro", "Cadastro feito com sucesso!")
+                else:
+                    messagebox.showinfo("Cadastro", "Email já cadastrado!")
+            else:
+                messagebox.showwarning("Cadastro", "Por favor, preencha todos os campos.")
+
+        elif opcao_cadastro == 2:
+            email = simpledialog.askstring("Login", "Digite seu email:")
+            senha = simpledialog.askstring("Login", "Digite sua senha:", show='*')
+
+            usuario_atual = sistema_usuarios.login_usuario(email, senha)
+
+            if usuario_atual:
+                messagebox.showinfo("Login", "Login bem-sucedido!")
+                logged_in = True
+            else:
+                messagebox.showwarning("Login", "Email ou senha incorretos!")
+
+        elif opcao_cadastro == 3:
+            messagebox.showinfo("SOS Oceanos", "Obrigado por utilizar o SOS Oceanos")
+            return
+
         else:
-            messagebox.showerror("Erro", "Email já cadastrado!")
+            messagebox.showwarning("Opção Inválida", "Opção inválida! Por favor, escolha uma opção válida.")
 
-    def login_usuario(self):
-        email = simpledialog.askstring("Login", "Digite seu email:")
-        senha = simpledialog.askstring("Login", "Digite sua senha:")
+    # Apresentação do site
+    messagebox.showinfo("SOS Oceanos", "Bem vindo ao SOS Oceanos")
 
-        self.usuario_atual = self.sistema_usuarios.login_usuario(email, senha)
-        if self.usuario_atual:
-            messagebox.showinfo("Login", "Login bem-sucedido!")
-            self.logged_in = True
-            self.show_main_menu()
+    # Área do Menu Principal
+    opcao = None
+    while opcao != 3:
+        opcao = simpledialog.askinteger("Opção", "Digite qual opção deseja acessar:\n1 - Relatório de Poluição por Drone\n2 - Doar para ONGS\n3 - Sair")
+
+        if opcao == 1:
+            # Processar imagem do drone
+            imagem = drone.captar_imagem()
+            plastico_detectado = sistema.detectar_plastico(imagem)
+
+            if plastico_detectado:
+                coordenadas = drone.obter_coordenadas()
+                quantidade_plastico = sistema.contar_plastico(imagem)
+                sistema.registrar_local_poluido(coordenadas, quantidade_plastico)
+
+            # Gerar relatório de poluição
+            relatorio = sistema.gerar_relatorio_poluicao()
+            messagebox.showinfo("Relatório de Poluição", relatorio)
+
+            # Exibir informações do drone
+            messagebox.showinfo("Drone", str(drone))
+
+        elif opcao == 2:
+            opcao_ong = None
+            while opcao_ong != 3:
+                opcao_ong = simpledialog.askinteger("ONG", "Digite a opção que deseja acessar:\n1 - CoralGuardians: Preservação de recifes de corais\n2 - CleanWave: Limpeza de lixo plástico dos oceanos\n3 - Voltar")
+
+                if opcao_ong == 1:
+                    valor = simpledialog.askfloat("Doação", "Digite quanto deseja doar:")
+                    if valor:
+                        sistema_doacoes.registrar_doacao("CoralGuardians", valor, usuario_atual["nome"])
+                        messagebox.showinfo("Doação", f"Obrigado(a), {usuario_atual['nome']}. Você doou R${valor} para a CoralGuardians!")
+
+                elif opcao_ong == 2:
+                    valor = simpledialog.askfloat("Doação", "Digite quanto deseja doar:")
+                    if valor:
+                        sistema_doacoes.registrar_doacao("CleanWave", valor, usuario_atual["nome"])
+                        messagebox.showinfo("Doação", f"Obrigado(a), {usuario_atual['nome']}. Você doou R${valor} para a CleanWave!")
+
+                elif opcao_ong == 3:
+                    break
+
+                else:
+                    messagebox.showwarning("Opção Inválida", "Opção inválida! Por favor, escolha uma opção válida.")
+
+        elif opcao == 3:
+            messagebox.showinfo("SOS Oceanos", "Obrigado por utilizar o SOS Oceanos")
+
         else:
-            messagebox.showerror("Erro", "Email ou senha incorretos!")
-
-    def show_main_menu(self):
-        self.clear_window()
-
-        tk.Label(self.root, text="Bem-vindo ao SOS Oceanos").pack(pady=10)
-        tk.Button(self.root, text="Relatório de Poluição por Drone", command=self.relatorio_poluicao_drone).pack(pady=5)
-        tk.Button(self.root, text="Doar para ONGs", command=self.doar_para_ongs).pack(pady=5)
-        tk.Button(self.root, text="Sair", command=self.root.quit).pack(pady=5)
-
-    def relatorio_poluicao_drone(self):
-        imagem = self.drone.captar_imagem()
-        plastico_detectado = self.sistema_deteccao.detectar_plastico(imagem)
-
-        if plastico_detectado:
-            coordenadas = self.drone.obter_coordenadas()
-            quantidade_plastico = self.sistema_deteccao.contar_plastico(imagem)
-            self.sistema_deteccao.registrar_local_poluido(coordenadas, quantidade_plastico)
-
-        relatorio = self.sistema_deteccao.gerar_relatorio_poluicao()
-        messagebox.showinfo("Relatório de Poluição por Drone", relatorio)
-        messagebox.showinfo("Informações do Drone", str(self.drone))
-
-    def doar_para_ongs(self):
-        def confirmar_doacao(ong):
-            valor = simpledialog.askfloat("Doação", "Digite quanto deseja doar:")
-            self.sistema_doacoes.registrar_doacao(ong, valor, self.usuario_atual.get_nome())
-            messagebox.showinfo("Doação", f"Obrigado(a), {self.usuario_atual.get_nome()}.\nVocê doou R${valor:.2f} para {ong}!")
-
-        janela_doacao = tk.Toplevel(self.root)
-        janela_doacao.title("Doar para ONGs")
-        tk.Label(janela_doacao, text="Escolha uma ONG para doar:").pack(pady=10)
-        tk.Button(janela_doacao, text="CoralGuardians: Preservação de recifes de corais", command=lambda: confirmar_doacao("CoralGuardians")).pack(pady=5)
-        tk.Button(janela_doacao, text="CleanWave: Limpeza de lixo plástico dos oceanos", command=lambda: confirmar_doacao("CleanWave")).pack(pady=5)
-
-    def clear_window(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
+            messagebox.showwarning("Opção Inválida", "Opção inválida! Por favor, escolha uma opção válida.")
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+    main()

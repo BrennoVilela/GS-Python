@@ -1,16 +1,16 @@
 class Drone:
-    def __init__(self, id, modelo, bateria):
+    def __init__(self, id, location, battery):
         self.id = id
-        self.modelo = modelo
-        self.bateria = bateria
+        self.location = location
+        self.battery = battery
 
     def captar_imagem(self):
-        # Simula a captação de imagem
-        return ["imagem_com_plastico"]
+        # Simulação de captura de imagem
+        return ["image_data"]
 
     def obter_coordenadas(self):
-        # Coordenadas fictícias
-        return "37.7749,-122.4194"
+        # Simulação de obtenção de coordenadas
+        return "123.456, -789.012"
 
     def __str__(self):
-        return f"Drone ID: {self.id}, Modelo: {self.modelo}, Bateria: {self.bateria}%"
+        return f"Drone ID: {self.id}, Location: {self.location}, Battery: {self.battery}%"
